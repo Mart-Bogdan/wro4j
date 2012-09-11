@@ -98,17 +98,17 @@ public class NodeLessCssProcessor
       int exitStatus = shell.waitFor();// this won't return till `out' stream being flushed!
       if (exitStatus != 0) {
         LOG.error("exitStatus: {}", exitStatus);
-        final String errorMessage = MessageFormat.format("Error in LESS: \n{0}", result.replace(tempFilePath, resourceUri));
+        final String errorMessage = MessageFormat.format("Error in LESS file: {0}\n\n{1}", temp, result.replace(tempFilePath, resourceUri));
+          System.out.println(errorMessage);
         throw new WroRuntimeException(errorMessage);
       }
+      FileUtils.deleteQuietly(temp);
       return result;
     } catch (Exception e) {
       LOG.error(e.getMessage(), e);
       throw new WroRuntimeException(e.getMessage(), e);
     } finally {
       IOUtils.closeQuietly(shellIn);
-      //always cleanUp
-      FileUtils.deleteQuietly(temp);
     }
   }
 
