@@ -13,15 +13,12 @@ import java.util.concurrent.Callable;
 
 import junit.framework.Assert;
 
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ro.isdc.wro.WroRuntimeException;
-import ro.isdc.wro.extensions.processor.css.NodeLessCssProcessor;
+import ro.isdc.wro.extensions.processor.css.RhinoLessCssProcessor;
 import ro.isdc.wro.extensions.processor.support.less.LessCss;
 import ro.isdc.wro.model.resource.ResourceType;
 import ro.isdc.wro.model.resource.processor.ResourcePostProcessor;
@@ -31,49 +28,43 @@ import ro.isdc.wro.util.WroTestUtils;
 
 
 /**
- * Test less css processor based on lessc shell which uses node.
+ * Test less css processor.
  *
  * @author Alex Objelean
+ * @created Created on Apr 21, 2010
  */
-public class TestNodeLessCssProcessor {
-  private static final Logger LOG = LoggerFactory.getLogger(TestNodeLessCssProcessor.class);
-  private static boolean isSupported = false;
-  @BeforeClass
-  public static void beforeClass() {
-    //initialize this field only once.
-    isSupported = new NodeLessCssProcessor().isSupported();
-  }
+public class TestRhinoLessCssProcessor {
+  private static final Logger LOG = LoggerFactory.getLogger(TestRhinoLessCssProcessor.class);
 
-  /**
-   * Checks if the test can be run by inspecting {@link NodeLessCssProcessor#isSupported()}
-   */
-  @Before
-  public void beforeMethod() {
-    Assume.assumeTrue(isSupported);
-  }
-  
   @Test
   public void testFromFolder()
       throws Exception {
-    final ResourcePostProcessor processor = new NodeLessCssProcessor();
+    final ResourcePostProcessor processor = new RhinoLessCssProcessor();
     final URL url = getClass().getResource("lesscss");
 
     final File testFolder = new File(url.getFile(), "test");
-    final File expectedFolder = new File(url.getFile(), "expectedNode");
+    final File expectedFolder = new File(url.getFile(), "expected");
     WroTestUtils.compareFromDifferentFoldersByExtension(testFolder, expectedFolder, "css", processor);
   }
 
 
   @Test
+  public void executeMultipleTimesDoesntThrowOutOfMemoryException() {
+    final LessCss lessCss = new LessCss();
+    for (int i = 0; i < 100; i++) {
+      lessCss.less("#id {.class {color: red;}}");
+    }
+  }
+
+  @Test
   public void shouldBeThreadSafe() throws Exception {
-    final NodeLessCssProcessor processor = new NodeLessCssProcessor() {
+    final RhinoLessCssProcessor processor = new RhinoLessCssProcessor() {
       @Override
-      protected void onException(final Exception e) {
-        throw WroRuntimeException.wrap(e);
+      protected void onException(final WroRuntimeException e) {
+        throw e;
       }
     };
     final Callable<Void> task = new Callable<Void>() {
-      @Override
       public Void call() {
         try {
           processor.process(new StringReader("#id {.class {color: red;}}"), new StringWriter());
@@ -92,7 +83,13 @@ public class TestNodeLessCssProcessor {
   @Test
   public void shouldFailWhenInvalidLessCssIsProcessed()
       throws Exception {
-    final ResourcePreProcessor processor = new NodeLessCssProcessor();
+    final ResourcePreProcessor processor = new RhinoLessCssProcessor() {
+      @Override
+      protected void onException(final WroRuntimeException e) {
+        LOG.debug("[FAIL] Exception message is: {}", e.getMessage());
+        throw e;
+      };
+    };
     final URL url = getClass().getResource("lesscss");
 
     final File testFolder = new File(url.getFile(), "invalid");
@@ -124,6 +121,6 @@ public class TestNodeLessCssProcessor {
 
   @Test
   public void shouldSupportCorrectResourceTypes() {
-    WroTestUtils.assertProcessorSupportResourceTypes(new NodeLessCssProcessor(), ResourceType.CSS);
+    WroTestUtils.assertProcessorSupportResourceTypes(new RhinoLessCssProcessor(), ResourceType.CSS);
   }
 }
