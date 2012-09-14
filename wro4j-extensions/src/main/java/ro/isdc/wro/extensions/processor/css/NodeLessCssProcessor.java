@@ -78,7 +78,7 @@ public class NodeLessCssProcessor
       LOG.warn("Exception while applying " + getClass().getSimpleName() + " processor on the " + resourceUri
           + " resource, no processing applied...", e);
       LOG.error(e.getMessage(), e);
-      onException(e);
+      onException(e, content);
     } finally {
       // return for later reuse
       reader.close();
@@ -117,18 +117,23 @@ public class NodeLessCssProcessor
       return result;
     } finally {
       IOUtils.closeQuietly(shellIn);
-      //always cleanUp
-      FileUtils.deleteQuietly(temp);
-      // always cleanUp
-      FileUtils.deleteQuietly(temp);
     }
+  }
+  
+  /**
+   *     }
   }
   
   /**
    * Invoked when a processing exception occurs. Default implementation wraps the original exception into
    * {@link WroRuntimeException}.
+   * 
+   * @param e
+   *          the {@link Exception} thrown during processing
+   * @param content
+   *          the resource content being processed.
    */
-  protected void onException(final Exception e) {
+  protected void onException(final Exception e, final String content) {
     throw WroRuntimeException.wrap(e);
   }
   
